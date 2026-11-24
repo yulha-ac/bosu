@@ -45,7 +45,7 @@
       <h2>2. 수강생 명단 <span class="hint" id="countText"></span></h2>
       <details>
         <summary>엑셀에서 한 번에 붙여넣기</summary>
-        <p class="note">엑셀에서 <b>이름, 생년월일(6자리), 휴대폰번호, 요양보호사 자격증번호</b> 4개 열을 순서대로 복사해 아래에 붙여넣고 '명단에 추가'를 누르세요.</p>
+        <p class="note">엑셀에서 <b>이름, 생년월일(6자리), 휴대폰번호, 요양보호사 자격증번호(예: 2015-1001234)</b> 4개 열을 순서대로 복사해 아래에 붙여넣고 '명단에 추가'를 누르세요.</p>
         <textarea id="paste" placeholder="홍길동	640512	010-0000-0000	자격증번호"></textarea>
         <button type="button" class="btn line" id="pasteBtn" style="margin-top:8px">명단에 추가</button>
       </details>
@@ -85,6 +85,7 @@
   var openedAt = Date.now();
   var $ = function (id) { return document.getElementById(id); };
   var courses = [];
+  var licConfirmed = '';   // '확인'을 누른 번호 묶음
 
   BOSU.loadCourses().then(function (res) {
     courses = res.courses.filter(function (c) { return c.status === '모집중'; });
@@ -108,12 +109,21 @@
       '<input type="text" class="m-name" placeholder="이름">' +
       '<input type="tel" class="m-birth" inputmode="numeric" maxlength="6" placeholder="생년월일 6자리">' +
       '<input type="tel" class="m-phone" inputmode="numeric" placeholder="휴대폰번호">' +
-      '<input type="text" class="m-license" placeholder="요양보호사 자격증번호">' +
+      '<div class="lic"><input type="tel" class="y m-licY" inputmode="numeric" maxlength="4" placeholder="자격증 발급연도"><span>-</span>' +
+      '<input type="tel" class="n m-licN" inputmode="numeric" maxlength="7" placeholder="1000000"></div>' +
       '</div>';
     box.querySelector('.m-name').value = v.name || '';
     box.querySelector('.m-birth').value = (v.birth || '').replace(/\D/g, '').slice(0, 6);
     box.querySelector('.m-phone').value = v.phone || '';
-    box.querySelector('.m-license').value = v.license || '';
+    var lp = BOSU.licenseSplit(v.license);
+    box.querySelector('.m-licY').value = (lp[0] || '').slice(0, 4);
+    box.querySelector('.m-licN').value = (lp[1] || '').slice(0, 7);
+    BOSU.bindLicense(box.querySelector('.m-licY'), box.querySelector('.m-licN'));
+    box.querySelector('.m-licN').addEventListener('blur', function () {
+      var lc = this.value.length === 7 ? BOSU.licenseCheck(box.querySelector('.m-licY').value, this.value) : { level: 'ok' };
+      this.classList.toggle('bad', lc.level === 'error');
+      this.title = lc.level === 'error' ? lc.msg : '';
+    });
     box.querySelector('.m-birth').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); });
     box.querySelector('.m-birth').addEventListener('blur', function () {
       var be = this.value ? BOSU.birthError(this.value) : '';
@@ -171,6 +181,7 @@
     if (!/^0\d{8,10}$/.test($('managerPhone').value.replace(/\D/g, ''))) return fail('담당자 연락처를 확인해 주세요.');
 
     var members = [];
+    var toConfirm = [];   // 뒷자리가 101~109로 시작해 확인이 필요한 번호
     var rows = $('members').querySelectorAll('.member');
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
@@ -178,15 +189,27 @@
         name: r.querySelector('.m-name').value.trim(),
         birth: r.querySelector('.m-birth').value.trim(),
         phone: r.querySelector('.m-phone').value.trim(),
-        license: r.querySelector('.m-license').value.trim()
+        licY: r.querySelector('.m-licY').value.trim(),
+        licN: r.querySelector('.m-licN').value.trim()
       };
-      if (!m.name && !m.birth && !m.phone && !m.license) continue; // 빈 줄
+      if (!m.name && !m.birth && !m.phone && !m.licY && !m.licN) continue; // 빈 줄
       var label = (i + 1) + '번 수강생: ';
       if (!m.name) return fail(label + '이름을 입력해 주세요.');
       var be = BOSU.birthError(m.birth);
       if (be) return fail(label + be);
       if (!/^01\d{8,9}$/.test(m.phone.replace(/\D/g, ''))) return fail(label + '휴대폰번호를 확인해 주세요.');
-      if (!m.license) return fail(label + '요양보호사 자격증번호를 입력해 주세요.');
+      var lc = BOSU.licenseCheck(m.licY, m.licN);
+      if (lc.level === 'error') {
+        fail(label + lc.msg);
+        var nEl = r.querySelector('.m-licN');
+        nEl.classList.add('bad');
+        BOSU.modal('자격증 번호를 다시 확인해 주세요', BOSU.esc(label + lc.msg), [{ label: '다시 입력', value: 1 }])
+          .then(function () { nEl.focus(); nEl.select(); });
+        return;
+      }
+      m.license = m.licY + '-' + m.licN;
+      if (lc.level === 'confirm') toConfirm.push({ label: (i + 1) + '번 ' + m.name, lic: m.license, el: r.querySelector('.m-licN') });
+      delete m.licY; delete m.licN;
       members.push(m);
     }
     if (!members.length) return fail('수강생을 1명 이상 입력해 주세요.');
@@ -194,6 +217,21 @@
     if (c && members.length > c.remain) return fail('잔여석(' + c.remain + '석)보다 인원이 많습니다.');
     if (!$('agreeStaff').checked || !$('agreeCollect').checked) {
       return fail('필수 동의 항목에 모두 체크해 주세요.');
+    }
+
+    // 10 다음이 0이 아닌 번호가 있으면 맞는지 한 번에 확인
+    var confirmKey = toConfirm.map(function (x) { return x.lic; }).join(',');
+    if (toConfirm.length && licConfirmed !== confirmKey) {
+      var list = toConfirm.map(function (x) {
+        return '<div class="lic-show">' + BOSU.esc(x.label) + ' : ' + BOSU.esc(x.lic) + '</div>';
+      }).join('');
+      BOSU.modal('자격증번호 확인', '<div>아래 자격증번호가 맞습니까?</div>' + list + '<div class="note">대부분의 번호는 뒷자리가 100으로 시작합니다.</div>',
+        [{ label: '재입력', value: 'retry', line: true }, { label: '확인', value: 'ok' }])
+        .then(function (v) {
+          if (v === 'ok') { licConfirmed = confirmKey; $('f').requestSubmit ? $('f').requestSubmit() : $('sendBtn').click(); }
+          else { toConfirm[0].el.focus(); toConfirm[0].el.select(); }
+        });
+      return;
     }
 
     var btn = $('sendBtn');

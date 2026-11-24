@@ -97,10 +97,73 @@
     return '';
   }
 
+
+  // 요양보호사 자격증번호 검사 (연도 4자리 + 번호 7자리)
+  // level: 'error'(다시 입력) / 'confirm'(맞는지 확인) / 'ok'(통과)
+  function licenseCheck(year, no) {
+    var y = String(year || '').replace(/\D/g, ''), n = String(no || '').replace(/\D/g, '');
+    var min = S.licenseYearMin || 2007, max = S.licenseYearMax || 2027;
+    if (!y && !n) return { level: 'error', msg: '요양보호사 자격증번호를 입력해 주세요.' };
+    if (y.length !== 4 || +y < min || +y > max) {
+      return { level: 'error', msg: '자격증번호 앞자리(발급연도)는 ' + min + '~' + max + ' 사이의 4자리로 입력해 주세요.' };
+    }
+    if (n.length !== 7) return { level: 'error', msg: '자격증번호 뒷자리는 숫자 7자리로 입력해 주세요.' };
+    if (n.slice(0, 2) !== '10') {
+      return { level: 'error', msg: '자격증번호 뒷자리는 10으로 시작합니다. 자격증 번호를 다시 확인해 주세요.' };
+    }
+    if (n.charAt(2) !== '0') {
+      return { level: 'confirm', msg: '자격증번호 ' + y + '-' + n + ' 가 맞습니까?' };
+    }
+    return { level: 'ok', msg: '' };
+  }
+
+  // '2015-1001234', '20151001234' 같은 문자열을 [연도, 번호]로 나눔 (엑셀 붙여넣기용)
+  function licenseSplit(v) {
+    var s = String(v || '').trim();
+    var m = s.match(/^(\d{4})\s*-\s*(\d+)$/);
+    if (m) return [m[1], m[2]];
+    var d = s.replace(/\D/g, '');
+    return d.length === 11 ? [d.slice(0, 4), d.slice(4)] : [d.slice(0, 4), d.slice(4)];
+  }
+
+  // 연도칸, 번호칸 입력 도우미: 숫자만, 연도 4자리를 채우면 번호칸으로 이동
+  function bindLicense(yEl, nEl) {
+    yEl.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 4);
+      if (this.value.length === 4) nEl.focus();
+    });
+    nEl.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 7); });
+    nEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !this.value) yEl.focus();
+    });
+  }
+
+  // 화면 안 확인창 (브라우저 alert 대신 사용). 누른 버튼의 value 를 돌려줌
+  function modal(title, body, buttons) {
+    return new Promise(function (resolve) {
+      var bg = document.createElement('div');
+      bg.className = 'modal-bg';
+      bg.innerHTML = '<div class="modal" role="dialog" aria-modal="true"><h3></h3><div class="modal-body"></div><div class="modal-btns"></div></div>';
+      bg.querySelector('h3').textContent = title;
+      bg.querySelector('.modal-body').innerHTML = body;
+      var box = bg.querySelector('.modal-btns');
+      buttons.forEach(function (b) {
+        var el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'btn' + (b.line ? ' line' : '');
+        el.textContent = b.label;
+        el.onclick = function () { document.body.removeChild(bg); resolve(b.value); };
+        box.appendChild(el);
+      });
+      document.body.appendChild(bg);
+      box.lastChild.focus();
+    });
+  }
+
   function param(name) {
     return new URLSearchParams(location.search).get(name) || '';
   }
 
-  window.BOSU = { birthError: birthError, krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param };
+  window.BOSU = { licenseCheck: licenseCheck, licenseSplit: licenseSplit, bindLicense: bindLicense, modal: modal, birthError: birthError, krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param };
   document.addEventListener('DOMContentLoaded', fillSite);
 })();
