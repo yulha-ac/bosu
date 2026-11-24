@@ -176,6 +176,8 @@ textarea {
 .lic .n { flex: 1; text-align: center; letter-spacing: .08em; }
 .lic span { font-size: 1.3rem; font-weight: 700; color: var(--muted); }
 .member .lic { grid-column: 1 / -1; }
+.lic.org .a { flex: 0 0 18%; text-align: center; }
+.lic.org .b { flex: 1; text-align: center; letter-spacing: .08em; }
 
 /* 확인창 */
 .modal-bg {
