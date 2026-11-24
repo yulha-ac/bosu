@@ -18,6 +18,7 @@ window.SITE = {
   bank: '(은행명)',
   account: '(계좌번호)',
   accountHolder: '(예금주)',
+  certHow: '교육 종료 후 교육원에서 발급 (단체 신청은 센터 담당자에게 일괄 전달)',
   payDays: 3,                    // 신청 후 입금 기한(일)
 
   privacyOfficer: '(성명) / (연락처)',
