@@ -76,10 +76,31 @@
     });
   }
 
+
+  // 생년월일(YYMMDD) 검사: 실제 달력에 있는 날짜인지, 나이가 맞는지 확인
+  // 문제가 없으면 '' , 문제가 있으면 안내 문구를 돌려줌
+  function birthError(v) {
+    var b = String(v || '').replace(/\D/g, '');
+    if (b.length !== 6) return '생년월일은 숫자 6자리(YYMMDD)로 입력해 주세요. 예: 640512';
+    var yy = +b.slice(0, 2), mm = +b.slice(2, 4), dd = +b.slice(4, 6);
+    if (mm < 1 || mm > 12) return '월(3~4번째 자리)은 01~12 사이로 입력해 주세요. 입력하신 값: ' + b.slice(2, 4);
+    var now = new Date(Date.now() + 9 * 3600 * 1000); // 한국 시간
+    var curY = now.getUTCFullYear();
+    var year = yy > curY % 100 ? 1900 + yy : 2000 + yy; // 올해 뒷자리보다 크면 1900년대
+    var last = new Date(Date.UTC(year, mm, 0)).getUTCDate(); // 그 달의 마지막 날
+    if (dd < 1 || dd > last) return '일(5~6번째 자리)을 확인해 주세요. ' + year + '년 ' + mm + '월은 ' + last + '일까지 있습니다.';
+    var age = curY - year;
+    var m0 = now.getUTCMonth() + 1, d0 = now.getUTCDate();
+    if (m0 < mm || (m0 === mm && d0 < dd)) age--;
+    if (age < 18) return '만 18세 미만으로 계산됩니다. 생년월일을 다시 확인해 주세요.';
+    if (age > 100) return '생년월일을 다시 확인해 주세요.';
+    return '';
+  }
+
   function param(name) {
     return new URLSearchParams(location.search).get(name) || '';
   }
 
-  window.BOSU = { krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param };
+  window.BOSU = { birthError: birthError, krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param };
   document.addEventListener('DOMContentLoaded', fillSite);
 })();

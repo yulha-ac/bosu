@@ -115,6 +115,11 @@
     box.querySelector('.m-phone').value = v.phone || '';
     box.querySelector('.m-license').value = v.license || '';
     box.querySelector('.m-birth').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); });
+    box.querySelector('.m-birth').addEventListener('blur', function () {
+      var be = this.value ? BOSU.birthError(this.value) : '';
+      this.classList.toggle('bad', !!be);
+      this.title = be;
+    });
     box.querySelector('.del').onclick = function () { box.remove(); renumber(); };
     $('members').appendChild(box);
     renumber();
@@ -152,11 +157,6 @@
   };
 
 
-  function validBirth(b) {
-    if (!/^\d{6}$/.test(b)) return false;
-    var m = +b.slice(2, 4), d = +b.slice(4, 6);
-    return m >= 1 && m <= 12 && d >= 1 && d <= 31;
-  }
 
   $('f').addEventListener('submit', function (ev) {
     ev.preventDefault();
@@ -183,7 +183,8 @@
       if (!m.name && !m.birth && !m.phone && !m.license) continue; // 빈 줄
       var label = (i + 1) + '번 수강생: ';
       if (!m.name) return fail(label + '이름을 입력해 주세요.');
-      if (!validBirth(m.birth)) return fail(label + '생년월일은 숫자 6자리로 입력해 주세요.');
+      var be = BOSU.birthError(m.birth);
+      if (be) return fail(label + be);
       if (!/^01\d{8,9}$/.test(m.phone.replace(/\D/g, ''))) return fail(label + '휴대폰번호를 확인해 주세요.');
       if (!m.license) return fail(label + '요양보호사 자격증번호를 입력해 주세요.');
       members.push(m);

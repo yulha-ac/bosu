@@ -132,6 +132,14 @@
                : d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
   });
 
+  // 생년월일 칸을 벗어나면 바로 검사
+  $('birth').addEventListener('blur', function () {
+    if (!this.value) return;
+    var be = BOSU.birthError(this.value);
+    this.parentNode.querySelector('.err').textContent = be;
+    mark('birth', !!be);
+  });
+
   // 칸 검사
   function mark(id, bad) {
     var el = $(id);
@@ -140,11 +148,6 @@
     if (e) e.classList.toggle('on', bad);
     return bad;
   }
-  function validBirth(b) {
-    if (!/^\d{6}$/.test(b)) return false;
-    var m = +b.slice(2, 4), d = +b.slice(4, 6);
-    return m >= 1 && m <= 12 && d >= 1 && d <= 31;
-  }
 
   $('f').addEventListener('submit', function (ev) {
     ev.preventDefault();
@@ -152,7 +155,9 @@
     fe.classList.remove('on');
     var bad = false;
     bad = mark('name', !$('name').value.trim()) || bad;
-    bad = mark('birth', !validBirth($('birth').value)) || bad;
+    var be = BOSU.birthError($('birth').value);
+    $('birth').parentNode.querySelector('.err').textContent = be || '';
+    bad = mark('birth', !!be) || bad;
     bad = mark('phone', !/^01\d{8,9}$/.test($('phone').value.replace(/\D/g, ''))) || bad;
     bad = mark('license', !$('license').value.trim()) || bad;
     bad = mark('center', !$('center').value.trim()) || bad;
