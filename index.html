@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>요양보호사 보수교육 신청</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="org" data-site="name"></div>
+    <h1>요양보호사 보수교육 신청</h1>
+    <div class="place">장소: <span data-site="name"></span> (<span data-site="city"></span>)</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>차수별 신청 현황</h2>
+    <div class="course-list" id="courses"><div class="card">신청 현황을 불러오는 중입니다...</div></div>
+    <p class="note">원하는 차수의 '개인 신청'을 누르면 해당 차수로 신청서가 열립니다.</p>
+  </section>
+
+  <section>
+    <a class="btn big line" href="group.html">단체 신청 (센터에서 여러 명 신청)</a>
+  </section>
+
+  <section>
+    <div class="links">
+      <a href="target.html">보수교육 대상자</a>
+      <a href="guide.html">교육 안내</a>
+      <a href="fee.html">교육비 및 입금 안내</a>
+      <a href="check.html">신청 확인</a>
+      <a href="privacy.html">개인정보 처리 안내</a>
+      <a href="contact.html">문의</a>
+    </div>
+  </section>
+</main>
+
+<footer><span data-site="name"></span> · <span data-site="phone"></span></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+// 차수별 현황 그리기
+BOSU.loadCourses().then(function (res) {
+  var box = document.getElementById('courses');
+  var list = res.courses.filter(function (c) { return c.status !== '교육종료'; });
+  if (!list.length) { box.innerHTML = '<div class="card">현재 모집 중인 차수가 없습니다.</div>'; return; }
+  box.innerHTML = list.map(function (c) {
+    var pct = c.capacity ? Math.min(100, Math.round(c.applied / c.capacity * 100)) : 0;
+    var act = c.status === '모집중'
+      ? '<a class="btn" href="apply.html?c=' + encodeURIComponent(c.id) + '">개인 신청</a>'
+      : '<span class="badge ' + (c.status === '정원마감' ? 'full' : 'done') + '">' + BOSU.esc(c.status) + '</span>';
+    return '<div class="course' + (c.status === '모집중' ? '' : ' closed') + '">' +
+      '<div class="ttl">' + BOSU.esc(c.name) + '<span class="date">' + BOSU.krDate(c.date) + '</span></div>' +
+      '<div class="act">' + act + '</div>' +
+      '<div class="meta"><span>신청 ' + c.applied + ' / ' + c.capacity + '명</span>' +
+      '<span class="bar"><i style="width:' + pct + '%"></i></span></div>' +
+      '</div>';
+  }).join('');
+}).catch(function () {
+  document.getElementById('courses').innerHTML =
+    '<div class="card">신청 현황을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인 신청 - 요양보호사 보수교육</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="back" href="index.html">&lsaquo; 처음으로</a>
+    <h1>개인 신청</h1>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="formArea">
+    <div id="picked" class="picked">교육차수를 불러오는 중입니다...</div>
+
+    <form id="f" class="card" novalidate>
+      <!-- 자동 제출 방지용 숨김 칸 (사람에게는 보이지 않음) -->
+      <div class="hp"><label>웹사이트<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+      <div class="field" id="courseField" style="display:none">
+        <label for="courseId">교육차수</label>
+        <select id="courseId"></select>
+      </div>
+
+      <div class="field">
+        <label for="name">이름</label>
+        <input type="text" id="name" autocomplete="name" placeholder="신분증과 같은 이름">
+        <div class="err">이름을 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label for="birth">생년월일 <span class="hint">숫자 6자리 (예: 640512)</span></label>
+        <input type="tel" id="birth" inputmode="numeric" maxlength="6" placeholder="640512">
+        <div class="err">생년월일은 숫자 6자리로 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label for="phone">휴대폰번호 <span class="hint">안내 문자를 받을 번호</span></label>
+        <input type="tel" id="phone" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000">
+        <div class="err">휴대폰번호를 다시 확인해 주세요.</div>
+      </div>
+      <div class="field">
+        <label for="license">요양보호사 자격증번호 <span class="hint">자격증에 적힌 번호</span></label>
+        <input type="text" id="license" placeholder="자격증번호">
+        <div class="err">자격증번호를 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label for="center">소속센터명 <span class="hint">현재 근무 중인 장기요양기관</span></label>
+        <input type="text" id="center" placeholder="예: 행복재가센터">
+        <div class="err">소속센터명을 입력해 주세요.</div>
+      </div>
+
+      <div class="box warn">주민등록번호는 적지 않습니다. 교육 당일 신분증으로 확인합니다.</div>
+
+      <label class="check"><input type="checkbox" id="agreeCollect"><span><b>[필수]</b> 개인정보 수집·이용에 동의합니다.</span></label>
+      <details>
+        <summary>내용 보기</summary>
+        <table>
+          <tr><th>목적</th><td>수강 신청 접수, 입금 확인, 안내 문자 발송, 수료 처리 및 국민건강보험공단 이수 보고</td></tr>
+          <tr><th>항목</th><td>이름, 생년월일(6자리), 휴대폰번호, 요양보호사 자격증번호, 소속센터명</td></tr>
+          <tr><th>보유 기간</th><td><span data-site="retention"></span> 보관 후 파기</td></tr>
+          <tr><th>거부 권리</th><td>동의를 거부할 수 있으나, 거부 시 온라인 신청이 불가합니다.</td></tr>
+        </table>
+      </details>
+
+      <label class="check"><input type="checkbox" id="agreeOverseas"><span><b>[필수]</b> 개인정보 국외 이전에 동의합니다.</span></label>
+      <details>
+        <summary>내용 보기</summary>
+        <table>
+          <tr><th>이전받는 자</th><td>Google LLC (구글 시트 및 앱스 스크립트 보관·처리)</td></tr>
+          <tr><th>이전 국가</th><td>미국 등 구글 데이터센터 소재 국가</td></tr>
+          <tr><th>시기 및 방법</th><td>신청서 제출 시 정보통신망을 통해 전송</td></tr>
+          <tr><th>항목</th><td>위 수집 항목 전체</td></tr>
+          <tr><th>보유 기간</th><td>위 보유 기간과 동일</td></tr>
+          <tr><th>거부 시</th><td>온라인 신청이 불가하며, 전화 또는 방문으로 신청할 수 있습니다.</td></tr>
+        </table>
+      </details>
+
+      <div class="err" id="formErr" style="margin-bottom:10px"></div>
+      <button class="btn big" type="submit" id="sendBtn">신청하기</button>
+    </form>
+  </div>
+
+  <div id="doneArea" class="card done-card" style="display:none"></div>
+</main>
+
+<footer>문의 <span data-site="phone"></span></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+(function () {
+  var openedAt = Date.now();
+  var courses = [];
+  var chosen = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  // 차수 표시
+  function showPicked() {
+    var p = $('picked');
+    if (!chosen) { p.innerHTML = '신청할 교육차수를 아래에서 선택해 주세요.'; return; }
+    p.innerHTML = '<div class="sub">신청 차수</div><b>' + BOSU.esc(chosen.name) + ' · ' + BOSU.krDate(chosen.date) + '</b>' +
+      '<div class="sub">' + BOSU.esc(chosen.time) + ' · ' + BOSU.esc(chosen.place) + ' · 잔여 ' + chosen.remain + '석</div>' +
+      '<div class="sub" style="margin-top:6px"><a href="index.html">다른 차수 선택</a></div>';
+  }
+
+  BOSU.loadCourses().then(function (res) {
+    courses = res.courses.filter(function (c) { return c.status === '모집중'; });
+    var want = BOSU.param('c');
+    chosen = courses.filter(function (c) { return c.id === want; })[0] || null;
+    if (!chosen) {
+      // 차수가 없거나 마감이면 선택 칸을 보여 줌
+      var sel = $('courseId');
+      sel.innerHTML = '<option value="">차수를 선택해 주세요</option>' + courses.map(function (c) {
+        return '<option value="' + BOSU.esc(c.id) + '">' + BOSU.esc(c.name) + ' ' + BOSU.krDate(c.date) + ' (잔여 ' + c.remain + '석)</option>';
+      }).join('');
+      $('courseField').style.display = '';
+      sel.onchange = function () {
+        chosen = courses.filter(function (c) { return c.id === sel.value; })[0] || null;
+        showPicked();
+      };
+      if (want) $('picked').innerHTML = '선택하신 차수는 마감되었습니다. 다른 차수를 선택해 주세요.';
+      else showPicked();
+      if (!courses.length) $('picked').innerHTML = '현재 신청 가능한 차수가 없습니다.';
+    } else {
+      showPicked();
+    }
+  }).catch(function () {
+    $('picked').innerHTML = '교육차수를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.';
+  });
+
+  $('birth').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  });
+  // 휴대폰 번호 자동 하이픈
+  $('phone').addEventListener('input', function () {
+    var d = this.value.replace(/\D/g, '').slice(0, 11);
+    this.value = d.length > 7 ? d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7)
+               : d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
+  });
+
+  // 칸 검사
+  function mark(id, bad) {
+    var el = $(id);
+    el.classList.toggle('bad', bad);
+    var e = el.parentNode.querySelector('.err');
+    if (e) e.classList.toggle('on', bad);
+    return bad;
+  }
+  function validBirth(b) {
+    if (!/^\d{6}$/.test(b)) return false;
+    var m = +b.slice(2, 4), d = +b.slice(4, 6);
+    return m >= 1 && m <= 12 && d >= 1 && d <= 31;
+  }
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var fe = $('formErr');
+    fe.classList.remove('on');
+    var bad = false;
+    bad = mark('name', !$('name').value.trim()) || bad;
+    bad = mark('birth', !validBirth($('birth').value)) || bad;
+    bad = mark('phone', !/^01\d{8,9}$/.test($('phone').value.replace(/\D/g, ''))) || bad;
+    bad = mark('license', !$('license').value.trim()) || bad;
+    bad = mark('center', !$('center').value.trim()) || bad;
+    var msg = '';
+    if (!chosen) msg = '교육차수를 선택해 주세요.';
+    else if (bad) msg = '빨간색으로 표시된 칸을 확인해 주세요.';
+    else if (!$('agreeCollect').checked || !$('agreeOverseas').checked) msg = '필수 동의 항목에 체크해 주세요.';
+    if (msg) { fe.textContent = msg; fe.classList.add('on'); return; }
+
+    // 입금자명은 자동 생성: 이름 + 생년월일 뒤 4자리
+    var payer = $('name').value.trim() + $('birth').value.slice(2);
+    var btn = $('sendBtn');
+    btn.disabled = true; btn.textContent = '신청 접수 중...';
+    BOSU.submit({
+      type: 'personal',
+      courseId: chosen.id,
+      name: $('name').value.trim(),
+      birth: $('birth').value,
+      phone: $('phone').value,
+      license: $('license').value.trim(),
+      center: $('center').value.trim(),
+      payer: payer,
+      agreeCollect: true, agreeOverseas: true,
+      website: document.querySelector('[name=website]').value,
+      elapsed: Math.round((Date.now() - openedAt) / 1000)
+    }).then(function (r) {
+      if (!r.ok) throw new Error(r.message || '신청을 처리하지 못했습니다.');
+      var S = window.SITE;
+      $('formArea').style.display = 'none';
+      var d = $('doneArea');
+      d.style.display = '';
+      d.innerHTML = '<h2>신청이 접수되었습니다</h2>' +
+        '<div>신청번호</div><div class="no">' + BOSU.esc(r.applyNo) + '</div>' +
+        '<p>' + BOSU.esc(r.courseName) + ' · ' + BOSU.krDate(r.courseDate) + '</p>' +
+        '<div class="box pay" style="text-align:left">' +
+        '<b>교육비 입금 안내</b><br>' + BOSU.esc(S.bank) + ' ' + BOSU.esc(S.account) + ' (예금주 ' + BOSU.esc(S.accountHolder) + ')<br>' +
+        '금액: ' + BOSU.esc(S.fee) + '원 · 입금자명: <b>' + BOSU.esc(payer) + '</b><br>' +
+        '신청 후 ' + S.payDays + '일 이내 입금해 주세요.</div>' +
+        '<p class="note">1영업일 이내에 접수 안내 문자를 보내 드립니다. 교육 당일 신분증을 꼭 지참해 주세요.</p>' +
+        '<a class="btn line" href="index.html">처음으로</a>';
+      window.scrollTo(0, 0);
+    }).catch(function (err) {
+      fe.textContent = err.message || '신청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+      fe.classList.add('on');
+      btn.disabled = false; btn.textContent = '신청하기';
+    });
+  });
+})();
+</script>
+</body>
+</html>

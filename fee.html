@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교육비 및 입금 안내 - 요양보호사 보수교육</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="back" href="index.html">&lsaquo; 처음으로</a>
+    <h1>교육비 및 입금 안내</h1>
+  </div>
+</header>
+<main class="wrap">
+<div class="box pay"><b>교육비: 1인 <span data-site="fee"></span>원</b><br>
+입금계좌: <span data-site="bank"></span> <span data-site="account"></span> (예금주 <span data-site="accountHolder"></span>)</div>
+<section class="card">
+  <h2>입금자명 규칙</h2>
+  <table>
+    <tr><th>개인</th><td>이름 + 생년월일 뒤 4자리 (예: 홍길동0512)</td></tr>
+    <tr><th>단체</th><td>센터명으로 인원수 x 교육비 일괄 입금 (예: 행복재가센터)</td></tr>
+  </table>
+</section>
+<section class="card">
+  <h2>입금 기한</h2>
+  <p>신청 후 <span data-site="payDays"></span>일 이내에 입금해 주세요. 기한 내 입금이 없으면 신청이 취소될 수 있습니다.</p>
+</section>
+<div class="box warn"><b>공식 입금계좌는 위 계좌 하나뿐입니다.</b> 다른 계좌로 입금을 요청받으면 교육원에 꼭 확인해 주세요.</div>
+</main>
+<footer><span data-site="name"></span> · <span data-site="phone"></span></footer>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+</body>
+</html>
