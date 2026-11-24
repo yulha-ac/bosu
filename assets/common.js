@@ -56,8 +56,29 @@
       .then(function (r) { return r.json(); });
   }
 
+
+  // 상단 탭 (교육신청 / 신청확인 / 수료증) - 모든 페이지 머리글 아래에 자동 표시
+  function renderTabs() {
+    var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    var active = page === 'check.html' ? 'check' : page === 'certificate.html' ? 'cert' : 'apply';
+    var tabs = [
+      ['apply', 'index.html', '교육신청'],
+      ['check', 'check.html', '신청확인'],
+      ['cert', 'certificate.html', '수료증']
+    ];
+    var nav = document.createElement('nav');
+    nav.className = 'tabs';
+    nav.setAttribute('aria-label', '주요 메뉴');
+    nav.innerHTML = '<div class="wrap">' + tabs.map(function (t) {
+      return '<a href="' + t[1] + '"' + (t[0] === active ? ' class="on" aria-current="page"' : '') + '>' + t[2] + '</a>';
+    }).join('') + '</div>';
+    var head = document.querySelector('header.top');
+    if (head) head.parentNode.insertBefore(nav, head.nextSibling);
+  }
+
   // 화면의 [data-site="키"] 칸에 교육원 정보 채우기
   function fillSite() {
+    renderTabs();
     document.querySelectorAll('[data-site]').forEach(function (el) {
       var v = S[el.getAttribute('data-site')];
       if (v != null) el.textContent = v;
