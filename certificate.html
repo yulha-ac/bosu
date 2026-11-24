@@ -6,7 +6,7 @@
 <title>수료증 - 요양보호사 보수교육</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2611241435">
+<link rel="stylesheet" href="assets/style.css?v=2611241500">
 </head>
 <body>
 <header class="top">
@@ -16,6 +16,30 @@
 </header>
 <main class="wrap">
 <div class="box info">보수교육을 모두 이수한 분께 <b>요양보호사 보수교육 이수증</b>을 발급하며, 이수 내역은 국민건강보험공단에 보고됩니다.</div>
+
+<div class="seg" role="tablist">
+  <button type="button" class="on" data-m="p">개인 이수 확인</button>
+  <button type="button" data-m="g">단체 이수증 발급</button>
+</div>
+
+<form id="gf" class="card" novalidate hidden>
+  <h2>단체 이수증 발급</h2>
+  <p class="note" style="margin-top:-4px;margin-bottom:14px">단체 신청한 센터 담당자는 기관기호와 담당자 이름으로 수강생 전체의 이수 여부를 확인하고, 이수증 PDF를 등록된 메일로 받을 수 있습니다.</p>
+  <div class="field">
+    <label for="gorgA">장기요양기관기호 <span class="hint">필수</span></label>
+    <div data-org="gorg"></div>
+  </div>
+  <div class="field">
+    <label for="gname">담당자 이름 <span class="hint">필수</span></label>
+    <input type="text" id="gname" autocomplete="name">
+  </div>
+  <div class="field">
+    <label for="gmail">담당자 메일 <span class="hint">선택 · 등록된 메일이 없을 때만 새로 등록됩니다</span></label>
+    <input type="email" id="gmail" autocomplete="email" placeholder="example@naver.com">
+  </div>
+  <div class="err" id="gErr" style="margin-bottom:10px"></div>
+  <button class="btn big" type="submit" id="gBtn">조회</button>
+</form>
 
 <form id="f" class="card" novalidate>
   <h2>이수 확인 조회</h2>
@@ -48,6 +72,7 @@
     <tr><th>발급 대상</th><td>교육을 모두 이수하여 수료 처리된 분</td></tr>
     <tr><th>발급번호</th><td>차수별로 가나다순 부여 (예: 제 2027-01-001 호)</td></tr>
     <tr><th>받는 방법</th><td><span data-site="certHow"></span></td></tr>
+    <tr><th>단체 신청</th><td>담당자 메일을 등록하면 수료 후 이수증 PDF를 메일로 보내 드립니다. 위 [단체 이수증 발급]에서 직접 받을 수도 있습니다.</td></tr>
     <tr><th>공단 보고</th><td>수료 후 교육원이 국민건강보험공단에 이수 내역을 보고합니다.</td></tr>
   </table>
 </section>
@@ -84,6 +109,72 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<section class="card result">' + head + body + '</section>';
   }
 
+  // ----- 개인/단체 전환 -----
+  document.querySelectorAll('.seg button').forEach(function (bt) {
+    bt.addEventListener('click', function () {
+      document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x === bt); });
+      var g = bt.getAttribute('data-m') === 'g';
+      $('gf').hidden = !g; $('f').hidden = g; $('result').innerHTML = '';
+    });
+  });
+  if (BOSU.param('m') === 'g') document.querySelector('.seg button[data-m=g]').click();
+
+  // ----- 단체 이수증 -----
+  document.querySelector('[data-org="gorg"]').outerHTML = BOSU.orgHtml('gorg');
+  var GORG = BOSU.bindOrg('gorg', 'gname');
+  var LAST = null;   // 마지막 조회 조건
+  function gCard(g) {
+    var done = g.members.filter(function (m) { return m.status === '수료'; });
+    var issued = done.filter(function (m) { return m.certNo; });
+    var rows = g.members.map(function (m) {
+      var tag, cls = '';
+      if (m.status === '수료') { tag = m.certNo ? '발급' : '발급 준비 중'; cls = m.certNo ? 'done' : 'paid'; }
+      else if (m.status === '취소' || m.status === '환불완료') { tag = '수강 취소'; cls = 'cancel'; }
+      else tag = '수료 전';
+      return '<li><div class="mtop"><b>' + BOSU.esc(m.name) + '</b><span class="tag ' + cls + '">' + tag + '</span></div>' +
+        (m.certNo ? '<span class="sub">제 ' + BOSU.esc(m.certNo) + ' 호' + (m.mailedAt ? ' · ' + BOSU.esc(m.mailedAt) + ' 메일 발송' : '') + '</span>' : '') + '</li>';
+    }).join('');
+    var act;
+    if (!issued.length) act = '<p class="note">아직 발급된 이수증이 없습니다. 교육 후 수료 처리와 발급번호 부여가 끝나면 받을 수 있습니다.</p>';
+    else if (!g.email) act = '<p class="note">등록된 메일이 없습니다. 위 담당자 메일 칸에 주소를 넣고 다시 조회하면 등록됩니다.</p>';
+    else act = '<button type="button" class="btn big send" data-g="' + BOSU.esc(g.groupNo) + '">이수증 PDF ' + issued.length + '장 메일로 받기</button>' +
+      '<p class="note">' + BOSU.esc(g.email) + ' (등록된 메일)로 보냅니다. 메일 변경은 교육원으로 전화해 주세요.</p>';
+    return '<section class="card result">' +
+      '<div class="r-head"><div><b>' + BOSU.esc(g.courseName) + '</b> ' + BOSU.krDate(g.date) + '</div>' +
+      '<div class="note">' + BOSU.esc(g.center) + ' · 단체번호 ' + BOSU.esc(g.groupNo) + '</div></div>' +
+      '<div class="gsum"><span>신청 <b>' + g.members.length + '명</b></span><span>수료 <b>' + done.length + '명</b></span><span>이수증 발급 <b>' + issued.length + '명</b></span></div>' +
+      '<ul class="mlist">' + rows + '</ul><div style="margin-top:14px">' + act + '</div></section>';
+  }
+  $('gf').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var fe = $('gErr'); fe.classList.remove('on');
+    var name = $('gname').value.trim(), mail = $('gmail').value.trim();
+    var msg = GORG.error() || (!name ? '담당자 이름을 입력해 주세요.' : '') ||
+      (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail) ? '메일 주소를 확인해 주세요.' : '');
+    if (msg) { fe.textContent = msg; fe.classList.add('on'); return; }
+    var btn = $('gBtn'); btn.disabled = true; btn.textContent = '조회 중...';
+    LAST = { orgCode: GORG.value(), managerName: name };
+    BOSU.submit({ action: 'groupLookup', orgCode: LAST.orgCode, managerName: name, email: mail }).then(function (r) {
+      if (!r.ok) throw new Error(r.message || '조회하지 못했습니다.');
+      var box = $('result');
+      box.innerHTML = !r.groups.length
+        ? '<div class="card">조회된 단체 신청 내역이 없습니다.<br><span class="note">기관기호와 담당자 이름을 신청할 때와 똑같이 입력했는지 확인해 주세요.</span></div>'
+        : (r.note ? '<div class="box info" style="margin-bottom:12px">' + BOSU.esc(r.note) + '</div>' : '') +
+          '<h2>단체 이수 내역</h2>' + r.groups.map(gCard).join('');
+      box.querySelectorAll('button.send').forEach(function (sb) {
+        sb.addEventListener('click', function () {
+          sb.disabled = true; var t = sb.textContent; sb.textContent = '이수증을 만들어 보내는 중... (1~2분)';
+          BOSU.submit({ action: 'groupCertMail', orgCode: LAST.orgCode, managerName: LAST.managerName, groupNo: sb.getAttribute('data-g') })
+            .then(function (x) { BOSU.modal(x.ok ? '메일 발송 완료' : '알림', '<p>' + BOSU.esc(x.message) + '</p>', [{ label: '확인', value: true }]); })
+            .catch(function () { BOSU.modal('알림', '<p>보내지 못했습니다. 잠시 후 다시 시도해 주세요.</p>', [{ label: '확인', value: true }]); })
+            .then(function () { sb.disabled = false; sb.textContent = t; });
+        });
+      });
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (err) { fe.textContent = err.message; fe.classList.add('on'); })
+      .then(function () { btn.disabled = false; btn.textContent = '조회'; });
+  });
+
   $('f').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var fe = $('formErr'); fe.classList.remove('on');
@@ -105,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <footer><span data-site="name"></span> · <span data-site="phone"></span></footer>
-<script src="assets/config.js?v=2611241435"></script>
-<script src="assets/common.js?v=2611241435"></script>
+<script src="assets/config.js?v=2611241500"></script>
+<script src="assets/common.js?v=2611241500"></script>
 </body>
 </html>

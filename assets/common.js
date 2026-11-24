@@ -185,6 +185,58 @@
     return new URLSearchParams(location.search).get(name) || '';
   }
 
-  window.BOSU = { licenseCheck: licenseCheck, licenseSplit: licenseSplit, bindLicense: bindLicense, modal: modal, birthError: birthError, krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param };
+  // ===== 장기요양기관기호 입력 (1자리-5자리-5자리, 첫 자리 1~3) =====
+  // 화면에 <div data-org="org" data-next="다음칸id"></div> 를 두면 입력칸 3개를 만들어 줌
+  function orgHtml(px) {
+    return '<div class="lic org">' +
+      '<input type="tel" id="' + px + 'A" class="a" inputmode="numeric" maxlength="1" placeholder="1" aria-label="기관기호 첫 자리">' +
+      '<span>-</span><input type="tel" id="' + px + 'B" class="b" inputmode="numeric" maxlength="5" placeholder="00000" aria-label="기관기호 가운데 5자리">' +
+      '<span>-</span><input type="tel" id="' + px + 'C" class="b" inputmode="numeric" maxlength="5" placeholder="00000" aria-label="기관기호 끝 5자리">' +
+      '</div><div class="err" id="' + px + 'Err"></div>';
+  }
+  function bindOrg(px, nextId) {
+    var g = function (k) { return document.getElementById(px + k); };
+    var api = {
+      value: function () { return g('A').value + '-' + g('B').value + '-' + g('C').value; },
+      error: function () {
+        var a = g('A').value, b = g('B').value, c = g('C').value;
+        if (!a && !b && !c) return '장기요양기관기호를 입력해 주세요.';
+        if (!/^[1-3]$/.test(a)) return '기관기호 첫 자리는 1, 2, 3 중 하나입니다.';
+        if (!/^\d{5}$/.test(b) || !/^\d{5}$/.test(c)) return '기관기호는 1자리-5자리-5자리, 숫자 11자리입니다.';
+        return '';
+      },
+      focus: function () { g('A').focus(); }
+    };
+    function fill(d) { g('A').value = d.slice(0, 1); g('B').value = d.slice(1, 6); g('C').value = d.slice(6, 11); g('C').focus(); }
+    function show() {
+      var box = g('Err'), any = g('A').value || g('B').value || g('C').value;
+      var ae = document.activeElement && document.activeElement.id;
+      box.textContent = (any && [px + 'A', px + 'B', px + 'C'].indexOf(ae) < 0) ? api.error() : '';
+      box.classList.toggle('on', !!box.textContent);
+    }
+    [['A', 1, px + 'B'], ['B', 5, px + 'C'], ['C', 5, nextId]].forEach(function (o) {
+      var el = g(o[0]);
+      el.addEventListener('input', function () {
+        var d = el.value.replace(/\D/g, '');
+        if (o[0] === 'A' && d.length > 1) { fill(d); return; }   // 첫 칸에 전체 번호 입력
+        el.value = d.slice(0, o[1]);
+        if (el.value.length === o[1] && o[2] && document.getElementById(o[2])) document.getElementById(o[2]).focus();
+      });
+      el.addEventListener('paste', function (e) {
+        var d = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        if (d.length === 11) { e.preventDefault(); fill(d); show(); }
+      });
+      el.addEventListener('blur', function () { setTimeout(show, 250); });
+    });
+    return api;
+  }
+
+  // 진행상태 -> 화면 문구
+  function statusLabel(st) {
+    return { '접수': '신청완료', '입금확인': '교육비 납부완료', '확정': '교육비 납부완료', '수료': '수료',
+      '취소': '수강취소 (환불 처리 중)', '환불완료': '수강취소 및 환불완료' }[st] || st;
+  }
+
+  window.BOSU = { licenseCheck: licenseCheck, licenseSplit: licenseSplit, bindLicense: bindLicense, modal: modal, birthError: birthError, krDate: krDate, loadCourses: loadCourses, submit: submit, fillSite: fillSite, esc: esc, param: param, orgHtml: orgHtml, bindOrg: bindOrg, statusLabel: statusLabel };
   document.addEventListener('DOMContentLoaded', fillSite);
 })();

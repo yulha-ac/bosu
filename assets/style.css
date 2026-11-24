@@ -241,3 +241,21 @@ footer { color: var(--muted); font-size: .88rem; text-align: center; padding: 26
   .links { grid-template-columns: 1fr; }
   .member .row { grid-template-columns: 1fr; }
 }
+
+/* 개인/단체 조회 전환 */
+.seg { display: flex; gap: 6px; margin: 0 0 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 5px; }
+.seg button { flex: 1; min-height: 46px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-weight: 700; color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--pri); color: #fff; }
+/* 단체 조회 결과: 수강생별 내역 */
+.mlist { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.mlist li { padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.mlist .mtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mlist .mtop b { font-size: 1.02rem; }
+.mlist .tag { font-size: .82rem; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: #eef1f0; color: var(--muted); white-space: nowrap; }
+.mlist .tag.paid { background: var(--pri-soft); color: var(--pri); }
+.mlist .tag.done { background: var(--pri); color: #fff; }
+.mlist .tag.cancel { background: #fbe9e1; color: #9a3b12; }
+.mlist .sub { display: block; color: var(--muted); font-size: .88rem; margin-top: 3px; }
+.mlist .chg { color: #8f4317; }
+.gsum { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .9rem; color: var(--muted); margin-top: 6px; }
+.gsum b { color: var(--ink, #1d2b29); }

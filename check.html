@@ -6,7 +6,7 @@
 <title>신청 확인 - 요양보호사 보수교육</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2611241435">
+<link rel="stylesheet" href="assets/style.css?v=2611241500">
 </head>
 <body>
 <header class="top">
@@ -15,6 +15,30 @@
   </div>
 </header>
 <main class="wrap">
+<div class="seg" role="tablist">
+  <button type="button" class="on" data-m="p">개인 조회</button>
+  <button type="button" data-m="g">단체 조회</button>
+</div>
+
+<form id="gf" class="card" novalidate hidden>
+  <h2>단체 신청 내역 조회</h2>
+  <p class="note" style="margin-top:-4px;margin-bottom:14px">단체 신청 때 입력한 장기요양기관기호와 담당자 이름으로 조회합니다. 수강생별 신청, 교육비 입금, 변경, 취소 내역이 나옵니다.</p>
+  <div class="field">
+    <label for="gorgA">장기요양기관기호 <span class="hint">필수</span></label>
+    <div data-org="gorg"></div>
+  </div>
+  <div class="field">
+    <label for="gname">담당자 이름 <span class="hint">필수</span></label>
+    <input type="text" id="gname" autocomplete="name">
+  </div>
+  <div class="field">
+    <label for="gmail">담당자 메일 <span class="hint">선택 · 입력하시면 수료 후 이수증 PDF를 메일로 보내 드립니다</span></label>
+    <input type="email" id="gmail" autocomplete="email" placeholder="example@naver.com">
+  </div>
+  <div class="err" id="gErr" style="margin-bottom:10px"></div>
+  <button class="btn big" type="submit" id="gBtn">단체 조회</button>
+</form>
+
 <form id="f" class="card" novalidate>
   <h2>신청 내역 조회</h2>
   <p class="note" style="margin-top:-4px;margin-bottom:14px">신청하실 때 입력한 이름과 생년월일로 조회합니다. 단체 신청은 수강생 본인의 이름으로 조회하세요.</p>
@@ -72,9 +96,74 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="r-head"><div><b>' + BOSU.esc(it.courseName) + '</b> ' + BOSU.krDate(it.date) + '</div>' +
       '<div class="note">' + [BOSU.esc(it.time), BOSU.esc(it.place)].filter(Boolean).join(' · ') + '</div>' +
       '<div class="note">신청번호 ' + BOSU.esc(it.applyNo) + ' · ' + BOSU.esc(it.type) + ' 신청</div></div>' +
-      '<ul class="steps">' + steps + '</ul></section>';
+      '<ul class="steps">' + steps + '</ul>' +
+      (it.change ? '<p class="note chg" style="color:#8f4317">변경 내역: ' + BOSU.esc(it.change) + '</p>' : '') + '</section>';
   }
 
+  // ----- 개인/단체 전환 -----
+  document.querySelectorAll('.seg button').forEach(function (bt) {
+    bt.addEventListener('click', function () {
+      document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x === bt); });
+      var g = bt.getAttribute('data-m') === 'g';
+      $('gf').hidden = !g; $('f').hidden = g; $('result').innerHTML = '';
+    });
+  });
+  if (BOSU.param('m') === 'g') document.querySelector('.seg button[data-m=g]').click();
+
+  // ----- 단체 조회 -----
+  document.querySelector('[data-org="gorg"]').outerHTML = BOSU.orgHtml('gorg');
+  var GORG = BOSU.bindOrg('gorg', 'gname');
+  function money(v) { return v ? Number(v).toLocaleString('ko-KR') + '원' : ''; }
+  function memberRow(m) {
+    var cls = '', st = m.status;
+    if (st === '수료') cls = 'done';
+    else if (st === '입금확인' || st === '확정') cls = 'paid';
+    else if (st === '취소' || st === '환불완료') cls = 'cancel';
+    var lines = [];
+    if (cls === 'paid' || cls === 'done') lines.push('입금 ' + [m.paidAt, money(m.paidAmount)].filter(Boolean).join(' · ') + (m.paidAt || m.paidAmount ? '' : '확인'));
+    if (cls === '') lines.push('교육비 입금 대기');
+    if (m.change) lines.push('<span class="chg">변경: ' + BOSU.esc(m.change) + '</span>');
+    if (cls === 'cancel') lines.push(st === '환불완료' ? '취소 및 환불 완료' : '취소됨 · 환불 처리 중');
+    if (m.certNo) lines.push('이수증 제 ' + BOSU.esc(m.certNo) + ' 호');
+    return '<li><div class="mtop"><b>' + BOSU.esc(m.name) + '</b><span class="tag ' + cls + '">' + BOSU.esc(BOSU.statusLabel(st)) + '</span></div>' +
+      lines.map(function (l) { return '<span class="sub">' + l + '</span>'; }).join('') + '</li>';
+  }
+  function groupCard(g) {
+    var c = { all: g.members.length, paid: 0, cancel: 0, change: 0 };
+    g.members.forEach(function (m) {
+      if (['입금확인', '확정', '수료'].indexOf(m.status) >= 0) c.paid++;
+      if (m.status === '취소' || m.status === '환불완료') c.cancel++;
+      if (m.change) c.change++;
+    });
+    return '<section class="card result">' +
+      '<div class="r-head"><div><b>' + BOSU.esc(g.courseName) + '</b> ' + BOSU.krDate(g.date) + '</div>' +
+      '<div class="note">' + BOSU.esc(g.center) + ' · 단체번호 ' + BOSU.esc(g.groupNo) + ' · ' + BOSU.esc(g.appliedAt) + ' 접수</div>' +
+      (g.email ? '<div class="note">이수증 받을 메일: ' + BOSU.esc(g.email) + '</div>' : '') + '</div>' +
+      '<div class="gsum"><span>신청 <b>' + c.all + '명</b></span><span>입금 확인 <b>' + c.paid + '명</b></span>' +
+      '<span>변경 <b>' + c.change + '명</b></span><span>취소 <b>' + c.cancel + '명</b></span></div>' +
+      '<ul class="mlist">' + g.members.map(memberRow).join('') + '</ul></section>';
+  }
+  $('gf').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var fe = $('gErr'); fe.classList.remove('on');
+    var name = $('gname').value.trim(), mail = $('gmail').value.trim();
+    var msg = GORG.error() || (!name ? '담당자 이름을 입력해 주세요.' : '') ||
+      (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail) ? '메일 주소를 확인해 주세요.' : '');
+    if (msg) { fe.textContent = msg; fe.classList.add('on'); return; }
+    var btn = $('gBtn'); btn.disabled = true; btn.textContent = '조회 중...';
+    BOSU.submit({ action: 'groupLookup', orgCode: GORG.value(), managerName: name, email: mail }).then(function (r) {
+      if (!r.ok) throw new Error(r.message || '조회하지 못했습니다.');
+      var box = $('result');
+      box.innerHTML = !r.groups.length
+        ? '<div class="card">조회된 단체 신청 내역이 없습니다.<br><span class="note">기관기호와 담당자 이름을 신청할 때와 똑같이 입력했는지 확인해 주세요.</span></div>'
+        : (r.note ? '<div class="box info" style="margin-bottom:12px">' + BOSU.esc(r.note) + '</div>' : '') +
+          '<h2>단체 신청 내역 (' + r.groups.length + '건)</h2>' + r.groups.map(groupCard).join('');
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (err) { fe.textContent = err.message; fe.classList.add('on'); })
+      .then(function () { btn.disabled = false; btn.textContent = '단체 조회'; });
+  });
+
+  // 개인 조회: 변경 내역이 있으면 표시
   $('f').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var fe = $('formErr'); fe.classList.remove('on');
@@ -99,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <footer><span data-site="name"></span> · <span data-site="phone"></span></footer>
-<script src="assets/config.js?v=2611241435"></script>
-<script src="assets/common.js?v=2611241435"></script>
+<script src="assets/config.js?v=2611241500"></script>
+<script src="assets/common.js?v=2611241500"></script>
 </body>
 </html>
