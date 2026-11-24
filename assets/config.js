@@ -5,7 +5,7 @@
 window.SITE = {
   // 앱스 스크립트 '웹 앱' 배포 후 받은 주소 (https://script.google.com/macros/s/.../exec)
   // 비워 두면 아래 FALLBACK 일정으로 '미리보기' 모드로 동작합니다(신청은 저장되지 않음).
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyMqQzSzOHTpKBMQL7MfkZJDZtEzo3N0WYntP3TcFKFjjd2whjIfVVPpWQeUfvsSYmV9w/exec',
 
   name: '요양보호사교육원',
   city: '대구시',
